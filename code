@@ -1,0 +1,50 @@
+import networkx as nx
+import folium
+from geopy.distance import geodesic
+
+# Define locations
+locations = {
+    "A": (40.7128, -74.0060),  # New York
+    "B": (34.0522, -118.2437), # Los Angeles
+    "C": (41.8781, -87.6298),  # Chicago
+    "D": (29.7604, -95.3698),  # Houston
+    "E": (39.7392, -104.9903), # Denver
+}
+
+# Initialize graph
+G = nx.Graph()
+for loc, coords in locations.items():
+    G.add_node(loc, pos=coords)
+
+# Add weighted edges based on distance
+for (loc1, coords1), (loc2, coords2) in [
+    (("A", locations["A"]), ("C", locations["C"])),
+    (("A", locations["A"]), ("D", locations["D"])),
+    (("B", locations["B"]), ("C", locations["C"])),
+    (("B", locations["B"]), ("E", locations["E"])),
+    (("C", locations["C"]), ("D", locations["D"])),
+    (("D", locations["D"]), ("E", locations["E"])),
+]:
+    distance = geodesic(coords1, coords2).kilometers
+    G.add_edge(loc1, loc2, weight=distance)
+
+# Find shortest path and distance
+start, end = "A", "E"
+shortest_path = nx.dijkstra_path(G, source=start, target=end, weight='weight')
+shortest_distance = nx.dijkstra_path_length(G, source=start, target=end, weight='weight')
+
+print(f"Shortest path: {shortest_path}")
+print(f"Shortest distance: {shortest_distance:.2f} km")
+
+# Visualization
+m = folium.Map(location=locations[start], zoom_start=4)
+for loc, coords in locations.items():
+    folium.Marker(location=coords, popup=f"{loc}").add_to(m)
+
+# Highlight the shortest path
+path_coords = [locations[loc] for loc in shortest_path]
+folium.PolyLine(path_coords, color="blue", weight=2.5, opacity=1).add_to(m)
+
+# Save and show map
+m.save("map.html")
+m
